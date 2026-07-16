@@ -103,6 +103,7 @@ def build_markets() -> dict[str, Any]:
         "updated_at": int(time.time() * 1000),
         "count": len(markets),
         "markets": active,
+        "prices": {item["symbol"]: item["price"] for item in markets},
     }
 
 
