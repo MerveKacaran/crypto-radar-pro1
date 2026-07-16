@@ -1,5 +1,4 @@
 """Crypto Radar backend.
-
 Bu uygulama BtcTurk'ten yalnızca piyasa verisi okur. Alım ve satım
 işlemleri arayüz tarafında sanal portföy olarak tutulacaktır; bu dosya
 gerçek emir göndermez ve API anahtarı kullanmaz.
