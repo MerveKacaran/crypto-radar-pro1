@@ -1,33 +1,173 @@
 <!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="BtcTurk TRY pariteleri için canlı kripto radar ve portföy takip paneli.">
-  <title>Crypto Radar Pro</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <script defer src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BtcTurk canlı piyasa verileriyle çalışan sanal kripto portföy takip uygulaması.">
+    <title>Crypto Radar</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script defer src="{{ url_for('static', filename='js/script.js') }}"></script>
 </head>
 <body>
-  <div class="background-glow glow1"></div><div class="background-glow glow2"></div>
-  <header class="header">
-    <div class="logo-area"><div class="logo-circle">📈</div><div><h1>Crypto Radar Pro</h1><span>Canlı kripto analiz paneli</span></div></div>
-    <div class="status-area"><div class="status"><span class="status-dot"></span><span id="connectionStatus">Bağlanıyor</span></div><div id="clock">--:--:--</div></div>
-  </header>
-  <section class="cards" aria-label="Piyasa özeti">
-    <div class="card"><h3>Takip Edilen Coin</h3><p id="coinCount">0</p></div>
-    <div class="card"><h3>AL Sinyali</h3><p id="buyCount">0</p></div>
-    <div class="card"><h3>SAT Sinyali</h3><p id="sellCount">0</p></div>
-    <div class="card"><h3>Son Güncelleme</h3><p id="lastUpdate">--</p></div>
-  </section>
-  <main class="dashboard">
-    <section class="panel"><h2>📊 Canlı Radar</h2><p class="panel-note">Değişim, panelin önceki yenilemesine göre hesaplanır.</p><div class="table-wrap"><table><thead><tr><th>Coin</th><th>Fiyat</th><th>Değişim</th><th>Sinyal</th><th>İşlem</th></tr></thead><tbody id="marketTable"><tr><td colspan="5">Veriler yükleniyor…</td></tr></tbody></table></div></section>
-    <section class="panel"><h2>💼 Aktif İşlemler</h2><div class="table-wrap"><table><thead><tr><th>Coin</th><th>Alış</th><th>Canlı</th><th>Kâr/Zarar</th><th>İşlem</th></tr></thead><tbody id="portfolioTable"><tr><td colspan="5">Henüz açık işlem bulunmuyor.</td></tr></tbody></table></div></section>
-    <section class="panel"><h2>📜 İşlem Günlüğü</h2><div class="table-wrap"><table><thead><tr><th>Tarih</th><th>Coin</th><th>Alış</th><th>Satış</th><th>Sonuç</th></tr></thead><tbody id="historyTable"><tr><td colspan="5">Henüz işlem geçmişi bulunmuyor.</td></tr></tbody></table></div></section>
-  </main>
-  <footer><div class="footer-content"><div><h3>Crypto Radar Pro</h3><p>Yatırım tavsiyesi değildir.</p></div><p>Version 1.1</p></div></footer>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <div id="buyModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalCoinName"><div class="modal-content"><div class="modal-header"><h2 id="modalCoinName">Coin Satın Al</h2><button class="close-btn" type="button" aria-label="Kapat">✕</button></div><div class="modal-body"><div class="input-group"><label for="buyAmount">Kaç TL'lik aldın?</label><input type="number" id="buyAmount" min="0" step="any" placeholder="Örneğin 5000"></div><div class="input-group"><label for="targetPercent">Hedef kâr (%)</label><input type="number" id="targetPercent" value="10" min="0" step="any"></div><div class="input-group"><label for="stopPercent">Stop loss (%)</label><input type="number" id="stopPercent" value="5" min="0" max="100" step="any"></div></div><div class="modal-footer"><button class="btn-buy" id="savePurchase" type="button">Kaydet</button></div></div></div>
-  <div id="loader" class="loader"><div class="spinner"></div><p>Crypto Radar Pro yükleniyor…</p></div>
+    <header class="header">
+        <div class="brand">
+            <div class="brand-icon" aria-hidden="true">◈</div>
+            <div>
+                <p class="eyebrow">BTC TÜRK • CANLI PİYASA</p>
+                <h1>Crypto Radar</h1>
+            </div>
+        </div>
+
+        <div class="connection" aria-live="polite">
+            <span id="connectionDot" class="connection-dot"></span>
+            <span id="connectionText">Bağlanıyor…</span>
+            <time id="clock">--:--:--</time>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="summary-grid" aria-label="Piyasa özeti">
+            <article class="summary-card">
+                <span class="summary-label">Toplam TRY paritesi</span>
+                <strong id="marketCount">—</strong>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Güçlü AL / AL</span>
+                <strong id="buySignalCount" class="positive">—</strong>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">SAT / Güçlü SAT</span>
+                <strong id="sellSignalCount" class="negative">—</strong>
+            </article>
+            <article class="summary-card">
+                <span class="summary-label">Son güncelleme</span>
+                <strong id="lastUpdate">—</strong>
+            </article>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">PİYASA RADARI</p>
+                    <h2>En hareketli coinler</h2>
+                    <p class="panel-description">
+                        Sinyaller 24 saatlik fiyat değişimine göre üretilir; yatırım tavsiyesi değildir.
+                    </p>
+                </div>
+                <button id="refreshButton" class="button button-secondary" type="button">Yenile</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parite</th>
+                            <th>Canlı fiyat</th>
+                            <th>24s değişim</th>
+                            <th>Sinyal</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marketTable">
+                        <tr>
+                            <td colspan="5" class="empty-state">Canlı piyasa verisi yükleniyor…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">AÇIK İŞLEMLER</p>
+                    <h2>Portföy takibi</h2>
+                    <p class="panel-description">
+                        Alış, hedef satış ve anlık kâr/zarar değerleri burada izlenir.
+                    </p>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parite</th>
+                            <th>Alış fiyatı</th>
+                            <th>Hedef satış</th>
+                            <th>Canlı fiyat</th>
+                            <th>Kâr / zarar</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolioTable">
+                        <tr>
+                            <td colspan="6" class="empty-state">Henüz açık işlem bulunmuyor.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">PORTFÖYÜM</p>
+                    <h2>İşlem günlüğü</h2>
+                    <p class="panel-description">Kapanan sanal alım-satım işlemlerinin kaydı.</p>
+                </div>
+                <button id="clearHistoryButton" class="button button-danger-outline" type="button">
+                    Geçmişi temizle
+                </button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Parite</th>
+                            <th>Alış</th>
+                            <th>Satış</th>
+                            <th>Sonuç</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable">
+                        <tr>
+                            <td colspan="5" class="empty-state">Henüz işlem geçmişi bulunmuyor.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <dialog id="buyDialog" class="dialog">
+        <form id="buyForm" method="dialog">
+            <div class="dialog-header">
+                <div>
+                    <p class="eyebrow">SANAL İŞLEM</p>
+                    <h2 id="buyDialogTitle">Coin al</h2>
+                </div>
+                <button id="closeDialogButton" class="icon-button" type="button" aria-label="Pencereyi kapat">×</button>
+            </div>
+
+            <p id="buyDialogPrice" class="dialog-price">Anlık fiyat: —</p>
+
+            <label for="amountInput">Alış tutarı (TL)</label>
+            <input id="amountInput" type="number" min="1" step="any" placeholder="Örnek: 5000" required>
+
+            <label for="targetInput">Hedef kâr (%)</label>
+            <input id="targetInput" type="number" min="0.1" step="0.1" value="5" required>
+
+            <div class="dialog-actions">
+                <button id="cancelDialogButton" class="button button-secondary" type="button">Vazgeç</button>
+                <button class="button" type="submit">Portföye ekle</button>
+            </div>
+        </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
+```
