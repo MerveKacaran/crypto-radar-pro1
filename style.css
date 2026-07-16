@@ -1,0 +1,940 @@
+/* ===========================================================
+   CRYPTO RADAR PRO
+   Version : 1.0
+   Developed by Merve Kaçaranlıoğlu Topçu
+=========================================================== */
+
+:root{
+
+    --bg:#0b1120;
+    --panel:#131c31;
+    --panel2:#1a2540;
+
+    --border:#263553;
+
+    --text:#f5f7fb;
+
+    --text2:#9eaec9;
+
+    --green:#00d26a;
+
+    --red:#ff4d67;
+
+    --orange:#ffb547;
+
+    --blue:#38bdf8;
+
+    --shadow:0 12px 35px rgba(0,0,0,.35);
+
+    --radius:18px;
+
+}
+
+
+*{
+
+    margin:0;
+
+    padding:0;
+
+    box-sizing:border-box;
+
+    font-family:"Segoe UI",sans-serif;
+
+}
+
+
+body{
+
+    background:linear-gradient(135deg,#08101d,#111827,#0f172a);
+
+    color:var(--text);
+
+    min-height:100vh;
+
+    overflow-x:hidden;
+
+}
+
+
+/* Scroll */
+
+::-webkit-scrollbar{
+
+    width:10px;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:#2f4269;
+
+    border-radius:20px;
+
+}
+
+
+/* Glow */
+
+.background-glow{
+
+    position:fixed;
+
+    border-radius:50%;
+
+    filter:blur(120px);
+
+    opacity:.25;
+
+    z-index:-1;
+
+}
+
+.glow1{
+
+    width:350px;
+
+    height:350px;
+
+    background:#00d26a;
+
+    top:-120px;
+
+    left:-100px;
+
+}
+
+.glow2{
+
+    width:420px;
+
+    height:420px;
+
+    background:#2563eb;
+
+    bottom:-160px;
+
+    right:-120px;
+
+}
+
+
+/* HEADER */
+
+.header{
+
+    width:92%;
+
+    max-width:1400px;
+
+    margin:auto;
+
+    padding:30px 0;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    flex-wrap:wrap;
+
+    gap:20px;
+
+}
+
+
+.logo-area{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:20px;
+
+}
+
+
+.logo-circle{
+
+    width:70px;
+
+    height:70px;
+
+    border-radius:50%;
+
+    background:linear-gradient(145deg,#00d26a,#00a956);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:30px;
+
+    box-shadow:var(--shadow);
+
+}
+
+
+.logo-area h1{
+
+    font-size:34px;
+
+    font-weight:700;
+
+}
+
+
+.logo-area span{
+
+    color:var(--text2);
+
+}
+
+
+.status-area{
+
+    text-align:right;
+
+}
+
+
+.status{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:10px 18px;
+
+    background:var(--panel);
+
+    border:1px solid var(--border);
+
+    border-radius:50px;
+
+    margin-bottom:12px;
+
+}
+
+
+.status-dot{
+
+    width:10px;
+
+    height:10px;
+
+    background:var(--green);
+
+    border-radius:50%;
+
+    animation:pulse 1.5s infinite;
+
+}
+
+.status-dot.offline{
+
+    background:var(--red);
+    animation:none;
+
+}
+
+
+#clock{
+
+    color:var(--text2);
+
+    font-size:14px;
+
+}
+
+
+/* DASHBOARD */
+
+.cards{
+
+    width:92%;
+
+    max-width:1400px;
+
+    margin:auto;
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+
+    gap:20px;
+
+}
+
+
+.card{
+
+    background:rgba(19,28,49,.92);
+
+    backdrop-filter:blur(14px);
+
+    border:1px solid var(--border);
+
+    border-radius:var(--radius);
+
+    padding:25px;
+
+    transition:.30s;
+
+    box-shadow:var(--shadow);
+
+}
+
+
+.card:hover{
+
+    transform:translateY(-6px);
+
+}
+
+
+.card h3{
+
+    color:var(--text2);
+
+    margin-bottom:14px;
+
+    font-size:15px;
+
+}
+
+
+.card p{
+
+    font-size:34px;
+
+    font-weight:bold;
+
+}
+
+
+/* MAIN */
+
+.dashboard{
+
+    width:92%;
+
+    max-width:1400px;
+
+    margin:35px auto;
+
+}
+
+
+.panel{
+
+    background:rgba(19,28,49,.92);
+
+    border:1px solid var(--border);
+
+    border-radius:var(--radius);
+
+    padding:25px;
+
+    margin-bottom:30px;
+
+    box-shadow:var(--shadow);
+
+}
+
+
+.panel h2{
+
+    margin-bottom:20px;
+
+    color:#ffffff;
+
+}
+
+.panel-note{
+
+    color:var(--text2);
+    font-size:14px;
+    margin:-10px 0 20px;
+
+}
+
+.table-wrap{
+
+    overflow-x:auto;
+
+}
+/* ===========================
+   TABLE
+=========================== */
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+thead{
+    background:var(--panel2);
+}
+
+thead th{
+    padding:16px;
+    text-align:left;
+    color:var(--blue);
+    font-size:14px;
+    font-weight:600;
+    border-bottom:1px solid var(--border);
+}
+
+tbody td{
+    padding:16px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+tbody tr{
+    transition:.25s;
+}
+
+tbody tr:hover{
+    background:rgba(255,255,255,.03);
+}
+
+.section-title{
+
+    font-weight:bold;
+    letter-spacing:.03em;
+    background:#18253d;
+
+}
+
+.section-title.positive{ color:var(--green); }
+.section-title.negative{ color:var(--red); }
+
+
+/* ===========================
+   BADGES
+=========================== */
+
+.badge{
+    display:inline-block;
+    padding:7px 14px;
+    border-radius:40px;
+    font-size:13px;
+    font-weight:bold;
+    color:#fff;
+}
+
+.buy{
+    background:var(--green);
+}
+
+.sell{
+    background:var(--red);
+}
+
+.wait{
+    background:#64748b;
+}
+
+.strong-buy{
+    background:linear-gradient(90deg,#00d26a,#00a956);
+}
+
+.strong-sell{
+    background:linear-gradient(90deg,#ff4d67,#d90429);
+}
+
+
+/* ===========================
+   BUTTONS
+=========================== */
+
+button{
+
+    cursor:pointer;
+
+    border:none;
+
+    border-radius:12px;
+
+    padding:10px 18px;
+
+    font-weight:600;
+
+    transition:.25s;
+
+}
+
+.btn-buy{
+
+    background:var(--green);
+
+    color:white;
+
+}
+
+.btn-buy:hover{
+
+    transform:translateY(-2px);
+
+    filter:brightness(1.08);
+
+}
+
+.btn-sell{
+
+    background:var(--red);
+
+    color:white;
+
+}
+
+.btn-sell:hover{
+
+    transform:translateY(-2px);
+
+    filter:brightness(1.08);
+
+}
+
+
+/* ===========================
+   PROFIT
+=========================== */
+
+.green{
+
+    color:var(--green);
+
+    font-weight:bold;
+
+}
+
+.red{
+
+    color:var(--red);
+
+    font-weight:bold;
+
+}
+
+
+/* ===========================
+   FOOTER
+=========================== */
+
+footer{
+
+    margin-top:60px;
+
+    padding:35px;
+
+    border-top:1px solid var(--border);
+
+}
+
+.footer-content{
+
+    width:92%;
+
+    max-width:1400px;
+
+    margin:auto;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    flex-wrap:wrap;
+
+    gap:20px;
+
+}
+
+.footer-content h3{
+
+    margin-bottom:10px;
+
+}
+
+.footer-content p{
+
+    color:var(--text2);
+
+}
+
+
+/* ===========================
+   TOAST
+=========================== */
+
+.toast{
+
+    position:fixed;
+
+    bottom:25px;
+
+    right:25px;
+
+    background:var(--green);
+
+    color:white;
+
+    padding:14px 22px;
+
+    border-radius:12px;
+
+    opacity:0;
+
+    transform:translateY(20px);
+
+    transition:.35s;
+
+    pointer-events:none;
+
+    z-index:9999;
+
+}
+
+.toast.show{
+
+    opacity:1;
+
+    transform:translateY(0);
+
+}
+
+.toast.error{
+
+    background:var(--red);
+
+}
+
+
+/* ===========================
+   LOADER
+=========================== */
+
+.loader{
+
+    position:fixed;
+
+    inset:0;
+
+    background:#08101d;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    justify-content:center;
+
+    gap:20px;
+
+    z-index:99999;
+
+}
+
+.hidden{
+
+    display:none;
+
+}
+
+.spinner{
+
+    width:70px;
+
+    height:70px;
+
+    border-radius:50%;
+
+    border:6px solid rgba(255,255,255,.12);
+
+    border-top:6px solid var(--green);
+
+    animation:spin 1s linear infinite;
+
+}
+
+
+/* ===========================
+   ANIMATION
+=========================== */
+
+@keyframes spin{
+
+    to{
+
+        transform:rotate(360deg);
+
+    }
+
+}
+
+@keyframes pulse{
+
+    0%{
+
+        transform:scale(1);
+
+    }
+
+    50%{
+
+        transform:scale(1.25);
+
+    }
+
+    100%{
+
+        transform:scale(1);
+
+    }
+
+}
+
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+
+@media(max-width:900px){
+
+.header{
+
+    justify-content:center;
+
+    text-align:center;
+
+}
+
+.status-area{
+
+    text-align:center;
+
+}
+
+.logo-area{
+
+    justify-content:center;
+
+}
+
+.footer-content{
+
+    flex-direction:column;
+
+    text-align:center;
+
+}
+
+.panel{
+
+    overflow-x:auto;
+
+}
+
+table{
+
+    min-width:750px;
+
+}
+
+}
+
+@media(max-width:600px){
+
+.logo-area h1{
+
+    font-size:26px;
+
+}
+
+.card p{
+
+    font-size:28px;
+
+}
+
+.logo-circle{
+
+    width:58px;
+
+    height:58px;
+
+    font-size:24px;
+
+}
+
+}
+
+/* ===========================
+   BUY MODAL
+=========================== */
+
+.modal{
+
+    position:fixed;
+
+    inset:0;
+
+    background:rgba(0,0,0,.65);
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    z-index:9998;
+
+}
+
+.modal.hidden{
+
+    display:none;
+
+}
+
+.modal-content{
+
+    width:420px;
+
+    max-width:95%;
+
+    background:var(--panel);
+
+    border:1px solid var(--border);
+
+    border-radius:18px;
+
+    box-shadow:var(--shadow);
+
+    overflow:hidden;
+
+    animation:modalShow .25s ease;
+
+}
+
+.modal-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:20px 24px;
+
+    border-bottom:1px solid var(--border);
+
+}
+
+.modal-header h2{
+
+    font-size:22px;
+
+}
+
+.close-btn{
+
+    background:none;
+
+    border:none;
+
+    color:var(--text);
+
+    font-size:20px;
+
+    cursor:pointer;
+
+}
+
+.modal-body{
+
+    padding:24px;
+
+}
+
+.input-group{
+
+    margin-bottom:20px;
+
+}
+
+.input-group label{
+
+    display:block;
+
+    margin-bottom:8px;
+
+    color:var(--text2);
+
+    font-size:14px;
+
+}
+
+.input-group input{
+
+    width:100%;
+
+    padding:12px;
+
+    border-radius:10px;
+
+    border:1px solid var(--border);
+
+    background:var(--panel2);
+
+    color:white;
+
+    font-size:16px;
+
+}
+
+.modal-footer{
+
+    padding:20px 24px;
+
+    border-top:1px solid var(--border);
+
+    text-align:right;
+
+}
+
+.modal-footer button{
+
+    min-width:140px;
+
+}
+
+@keyframes modalShow{
+
+    from{
+
+        transform:translateY(-20px);
+
+        opacity:0;
+
+    }
+
+    to{
+
+        transform:translateY(0);
+
+        opacity:1;
+
+    }
+
+}
+/* ===========================
+   END
+=========================== */
