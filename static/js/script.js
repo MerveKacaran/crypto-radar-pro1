@@ -1,204 +1,288 @@
-const API_URL = "/api/veri";
+"use strict";
+
+const API_URL = "/api/markets";
 const REFRESH_INTERVAL = 15_000;
+const PORTFOLIO_KEY = "crypto-radar-portfolio";
+const HISTORY_KEY = "crypto-radar-history";
 
-let marketData = [];
-let portfolio = readStorage("portfolio");
-let history = readStorage("history");
-let selectedCoin = null;
+const state = {
+    prices: new Map(),
+    selectedMarket: null,
+    portfolio: readStorage(PORTFOLIO_KEY),
+    history: readStorage(HISTORY_KEY),
+};
 
-const currency = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 2 });
+const money = new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
+});
+
 const byId = (id) => document.getElementById(id);
 
 function readStorage(key) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(key));
-    return Array.isArray(saved) ? saved : [];
-  } catch {
-    return [];
-  }
+    try {
+        const data = JSON.parse(localStorage.getItem(key));
+        return Array.isArray(data) ? data : [];
+    } catch (_error) {
+        return [];
+    }
 }
 
-function saveStorage(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-function updateClock() {
-  byId("clock").textContent = new Date().toLocaleTimeString("tr-TR");
-}
-
-function toast(message, isError = false) {
-  const element = byId("toast");
-  element.textContent = message;
-  element.classList.toggle("error", isError);
-  element.classList.add("show");
-  window.clearTimeout(toast.timer);
-  toast.timer = window.setTimeout(() => element.classList.remove("show"), 3_000);
-}
-
-function setConnectionStatus(text, online) {
-  byId("connectionStatus").textContent = text;
-  document.querySelector(".status-dot").classList.toggle("offline", !online);
-}
-
-function signalFor(change) {
-  if (change >= 0.5) return ["🚀 Güçlü AL", "strong-buy"];
-  if (change >= 0.1) return ["🔥 AL", "buy"];
-  if (change <= -0.5) return ["💥 Güçlü SAT", "strong-sell"];
-  if (change <= -0.1) return ["🚨 SAT", "sell"];
-  return ["Bekle", "wait"];
+function writeStorage(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
 }
 
 function createCell(row, value, className = "") {
-  const cell = document.createElement("td");
-  cell.textContent = value;
-  if (className) cell.className = className;
-  row.append(cell);
-  return cell;
+    const cell = document.createElement("td");
+    cell.textContent = value;
+    if (className) cell.className = className;
+    row.append(cell);
+    return cell;
 }
 
-function sectionRow(label, className) {
-  const row = document.createElement("tr");
-  const cell = createCell(row, label, `section-title ${className}`);
-  cell.colSpan = 5;
-  return row;
+function setTableMessage(tableId, colSpan, message) {
+    const row = document.createElement("tr");
+    const cell = createCell(row, message, "empty-state");
+    cell.colSpan = colSpan;
+    byId(tableId).replaceChildren(row);
 }
 
-function appendMarketRow(body, coin) {
-  const row = document.createElement("tr");
-  const [signal, badgeClass] = signalFor(coin.change);
-  createCell(row, coin.symbol);
-  createCell(row, coin.formatted_price);
-  createCell(row, `${coin.change.toFixed(2)}%`, coin.change >= 0 ? "green" : "red");
-  const signalCell = document.createElement("td");
-  const badge = document.createElement("span");
-  badge.className = `badge ${badgeClass}`;
-  badge.textContent = signal;
-  signalCell.append(badge);
-  row.append(signalCell);
-  const actionCell = document.createElement("td");
-  const buy = document.createElement("button");
-  buy.className = "btn-buy";
-  buy.textContent = "AL";
-  buy.addEventListener("click", () => openBuyModal(coin));
-  actionCell.append(buy);
-  row.append(actionCell);
-  body.append(row);
+function showToast(message, isError = false) {
+    const toast = byId("toast");
+    toast.textContent = message;
+    toast.className = isError ? "toast show error" : "toast show";
+    clearTimeout(showToast.timeoutId);
+    showToast.timeoutId = window.setTimeout(() => {
+        toast.className = "toast";
+    }, 3500);
 }
 
-function drawMarket(gainers, losers) {
-  const body = byId("marketTable");
-  body.replaceChildren();
-  if (!gainers.length && !losers.length) {
-    body.innerHTML = "<tr><td colspan=\"5\">Gösterilecek piyasa verisi bulunamadı.</td></tr>";
-    return;
-  }
-  body.append(sectionRow("🚀 EN ÇOK YÜKSELENLER", "positive"));
-  gainers.forEach((coin) => appendMarketRow(body, coin));
-  body.append(sectionRow("📉 EN ÇOK DÜŞENLER", "negative"));
-  losers.forEach((coin) => appendMarketRow(body, coin));
+function setConnection(text, mode) {
+    byId("connectionText").textContent = text;
+    byId("connectionDot").className = `connection-dot ${mode}`;
 }
 
-function updateCards(total) {
-  byId("coinCount").textContent = total;
-  byId("buyCount").textContent = marketData.filter((coin) => coin.change >= 0.1).length;
-  byId("sellCount").textContent = marketData.filter((coin) => coin.change <= -0.1).length;
+function updateClock() {
+    byId("clock").textContent = new Date().toLocaleTimeString("tr-TR");
 }
 
-async function loadMarket() {
-  try {
-    const response = await fetch(API_URL);
-    const json = await response.json();
-    if (!response.ok || json.status !== "success") throw new Error(json.message || "Veri alınamadı.");
-    const unique = new Map([...json.gainers, ...json.losers].map((coin) => [coin.symbol, coin]));
-    marketData = [...unique.values()];
-    drawMarket(json.gainers, json.losers);
-    updateCards(json.count);
-    drawPortfolio();
-    byId("lastUpdate").textContent = new Date().toLocaleTimeString("tr-TR");
-    setConnectionStatus("Çevrimiçi", true);
-  } catch (error) {
-    console.error(error);
-    setConnectionStatus("Bağlantı yok", false);
-    toast(error.message || "Sunucu bağlantısı kurulamadı.", true);
-  }
+function percentText(value) {
+    return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
-function openBuyModal(coin) {
-  selectedCoin = coin;
-  byId("modalCoinName").textContent = `${coin.symbol} satın al`;
-  byId("buyAmount").value = "";
-  byId("targetPercent").value = "10";
-  byId("stopPercent").value = "5";
-  byId("buyModal").classList.remove("hidden");
-  byId("buyAmount").focus();
+function renderMarketTable(markets) {
+    const body = byId("marketTable");
+    body.replaceChildren();
+
+    if (!markets.length) {
+        setTableMessage("marketTable", 5, "Gösterilecek piyasa verisi bulunamadı.");
+        return;
+    }
+
+    markets.forEach((market) => {
+        const row = document.createElement("tr");
+        createCell(row, market.symbol);
+        createCell(row, market.formatted_price);
+        createCell(row, percentText(market.change), market.change >= 0 ? "positive" : "negative");
+
+        const signalCell = document.createElement("td");
+        const signal = document.createElement("span");
+        signal.className = `signal ${market.signal_class}`;
+        signal.textContent = market.signal;
+        signalCell.append(signal);
+        row.append(signalCell);
+
+        const actionCell = document.createElement("td");
+        const buyButton = document.createElement("button");
+        buyButton.type = "button";
+        buyButton.className = "button button-small";
+        buyButton.textContent = "AL";
+        buyButton.disabled = !market.buy_enabled;
+        buyButton.title = market.buy_enabled ? "Sanal portföye ekle" : "Bu sinyalde alım kapalı";
+        buyButton.addEventListener("click", () => openBuyDialog(market));
+        actionCell.append(buyButton);
+        row.append(actionCell);
+        body.append(row);
+    });
 }
 
-function closeBuyModal() {
-  byId("buyModal").classList.add("hidden");
-  selectedCoin = null;
+function openBuyDialog(market) {
+    state.selectedMarket = market;
+    byId("buyDialogTitle").textContent = `${market.symbol} için alım`;
+    byId("buyDialogPrice").textContent = `Anlık fiyat: ${money.format(market.price)}`;
+    byId("amountInput").value = "";
+    byId("targetInput").value = "5";
+    byId("buyDialog").showModal();
+    byId("amountInput").focus();
 }
 
-function savePurchase() {
-  const amountTL = Number(byId("buyAmount").value);
-  const targetPercent = Number(byId("targetPercent").value);
-  const stopPercent = Number(byId("stopPercent").value);
-  if (!selectedCoin || !Number.isFinite(amountTL) || amountTL <= 0 || !Number.isFinite(targetPercent) || targetPercent < 0 || !Number.isFinite(stopPercent) || stopPercent < 0 || stopPercent >= 100) {
-    toast("Lütfen geçerli tutar, hedef ve stop değerleri girin.", true);
-    return;
-  }
-  portfolio.unshift({ symbol: selectedCoin.symbol, buyPrice: selectedCoin.price, amountTL, coinAmount: amountTL / selectedCoin.price, targetPercent, stopPercent, buyDate: new Date().toLocaleString("tr-TR") });
-  const symbol = selectedCoin.symbol;
-  saveStorage("portfolio", portfolio);
-  closeBuyModal();
-  drawPortfolio();
-  toast(`${symbol} portföye eklendi.`);
+function closeBuyDialog() {
+    byId("buyDialog").close();
+    state.selectedMarket = null;
 }
 
 function currentPrice(item) {
-  return marketData.find((coin) => coin.symbol === item.symbol)?.price ?? item.buyPrice;
+    return state.prices.get(item.symbol) ?? item.buyPrice;
 }
 
-function drawPortfolio() {
-  const body = byId("portfolioTable");
-  body.replaceChildren();
-  if (!portfolio.length) {
-    body.innerHTML = "<tr><td colspan=\"5\">Henüz açık işlem bulunmuyor.</td></tr>";
-    return;
-  }
-  portfolio.forEach((item, index) => {
-    const current = currentPrice(item);
-    const profit = ((current - item.buyPrice) / item.buyPrice) * 100;
-    const row = document.createElement("tr");
-    createCell(row, item.symbol); createCell(row, currency.format(item.buyPrice)); createCell(row, currency.format(current)); createCell(row, `${profit.toFixed(2)}%`, profit >= 0 ? "green" : "red");
-    const action = document.createElement("td"); const sell = document.createElement("button");
-    sell.className = "btn-sell"; sell.textContent = "SAT"; sell.addEventListener("click", () => sellCoin(index)); action.append(sell); row.append(action); body.append(row);
-  });
+function renderPortfolio() {
+    const body = byId("portfolioTable");
+    body.replaceChildren();
+
+    if (!state.portfolio.length) {
+        setTableMessage("portfolioTable", 6, "Henüz açık işlem bulunmuyor.");
+        return;
+    }
+
+    state.portfolio.forEach((item) => {
+        const latest = currentPrice(item);
+        const profit = ((latest - item.buyPrice) / item.buyPrice) * 100;
+        const row = document.createElement("tr");
+        createCell(row, item.symbol);
+        createCell(row, money.format(item.buyPrice));
+        createCell(row, money.format(item.targetPrice));
+        createCell(row, money.format(latest));
+        createCell(row, percentText(profit), profit >= 0 ? "positive" : "negative");
+
+        const actionCell = document.createElement("td");
+        const sellButton = document.createElement("button");
+        sellButton.type = "button";
+        sellButton.className = "button button-danger button-small";
+        sellButton.textContent = "SAT";
+        sellButton.addEventListener("click", () => sellPosition(item.id));
+        actionCell.append(sellButton);
+        row.append(actionCell);
+        body.append(row);
+    });
 }
 
-function sellCoin(index) {
-  const item = portfolio[index];
-  const current = currentPrice(item);
-  const result = ((current - item.buyPrice) / item.buyPrice) * 100;
-  history.unshift({ date: new Date().toLocaleString("tr-TR"), symbol: item.symbol, buy: item.buyPrice, sell: current, result });
-  portfolio.splice(index, 1);
-  saveStorage("portfolio", portfolio); saveStorage("history", history);
-  drawPortfolio(); drawHistory(); toast(`${item.symbol} satıldı.`);
+function renderHistory() {
+    const body = byId("historyTable");
+    body.replaceChildren();
+
+    if (!state.history.length) {
+        setTableMessage("historyTable", 5, "Henüz işlem geçmişi bulunmuyor.");
+        return;
+    }
+
+    state.history.forEach((item) => {
+        const row = document.createElement("tr");
+        createCell(row, item.closedAt);
+        createCell(row, item.symbol);
+        createCell(row, money.format(item.buyPrice));
+        createCell(row, money.format(item.sellPrice));
+        createCell(row, percentText(item.result), item.result >= 0 ? "positive" : "negative");
+        body.append(row);
+    });
 }
 
-function drawHistory() {
-  const body = byId("historyTable"); body.replaceChildren();
-  if (!history.length) { body.innerHTML = "<tr><td colspan=\"5\">Henüz işlem geçmişi bulunmuyor.</td></tr>"; return; }
-  history.forEach((item) => { const row = document.createElement("tr"); createCell(row, item.date); createCell(row, item.symbol); createCell(row, currency.format(item.buy)); createCell(row, currency.format(item.sell)); createCell(row, `${Number(item.result).toFixed(2)}%`, item.result >= 0 ? "green" : "red"); body.append(row); });
+function addPosition(event) {
+    event.preventDefault();
+    const amount = Number(byId("amountInput").value);
+    const targetPercent = Number(byId("targetInput").value);
+    const market = state.selectedMarket;
+
+    if (!market || !Number.isFinite(amount) || amount <= 0 || !Number.isFinite(targetPercent) || targetPercent <= 0) {
+        showToast("Lütfen geçerli bir alış tutarı ve hedef kâr oranı girin.", true);
+        return;
+    }
+
+    const position = {
+        id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+        symbol: market.symbol,
+        buyPrice: market.price,
+        amount,
+        quantity: amount / market.price,
+        targetPercent,
+        targetPrice: market.price * (1 + targetPercent / 100),
+        openedAt: new Date().toLocaleString("tr-TR"),
+    };
+
+    state.portfolio.unshift(position);
+    writeStorage(PORTFOLIO_KEY, state.portfolio);
+    closeBuyDialog();
+    renderPortfolio();
+    showToast(`${market.symbol} sanal portföye eklendi.`);
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  byId("savePurchase").addEventListener("click", savePurchase);
-  document.querySelector(".close-btn").addEventListener("click", closeBuyModal);
-  byId("buyModal").addEventListener("click", (event) => { if (event.target === event.currentTarget) closeBuyModal(); });
-  document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeBuyModal(); });
-  updateClock(); window.setInterval(updateClock, 1_000);
-  drawPortfolio(); drawHistory();
-  await loadMarket();
-  byId("loader").classList.add("hidden");
-  window.setInterval(loadMarket, REFRESH_INTERVAL);
+function sellPosition(id) {
+    const index = state.portfolio.findIndex((item) => item.id === id);
+    if (index === -1) return;
+
+    const position = state.portfolio[index];
+    const sellPrice = currentPrice(position);
+    const result = ((sellPrice - position.buyPrice) / position.buyPrice) * 100;
+
+    state.history.unshift({
+        symbol: position.symbol,
+        buyPrice: position.buyPrice,
+        sellPrice,
+        result,
+        closedAt: new Date().toLocaleString("tr-TR"),
+    });
+    state.portfolio.splice(index, 1);
+    writeStorage(PORTFOLIO_KEY, state.portfolio);
+    writeStorage(HISTORY_KEY, state.history);
+    renderPortfolio();
+    renderHistory();
+    showToast(`${position.symbol} işlemi kapatıldı.`);
+}
+
+async function loadMarkets() {
+    const refreshButton = byId("refreshButton");
+    refreshButton.disabled = true;
+    setConnection("Veri yenileniyor…", "");
+
+    try {
+        const response = await fetch(API_URL, { headers: { Accept: "application/json" } });
+        const data = await response.json();
+        if (!response.ok || data.status !== "success") {
+            throw new Error(data.message || "Piyasa verisi alınamadı.");
+        }
+
+        state.prices = new Map(Object.entries(data.prices || {}).map(([symbol, price]) => [symbol, Number(price)]));
+        renderMarketTable(data.markets || []);
+        renderPortfolio();
+        byId("marketCount").textContent = data.count;
+        byId("buySignalCount").textContent = data.markets.filter((item) => item.buy_enabled).length;
+        byId("sellSignalCount").textContent = data.markets.filter((item) => item.signal_class.includes("sell")).length;
+        byId("lastUpdate").textContent = new Date(data.updated_at).toLocaleTimeString("tr-TR");
+        setConnection("Canlı veri", "online");
+    } catch (error) {
+        console.error(error);
+        setConnection("Bağlantı kurulamadı", "offline");
+        showToast(error.message || "Sunucu bağlantısı kurulamadı.", true);
+    } finally {
+        refreshButton.disabled = false;
+    }
+}
+
+function clearHistory() {
+    if (!state.history.length) return;
+    if (!window.confirm("İşlem geçmişinin tamamı silinsin mi?")) return;
+    state.history = [];
+    writeStorage(HISTORY_KEY, state.history);
+    renderHistory();
+    showToast("İşlem geçmişi temizlendi.");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    byId("refreshButton").addEventListener("click", loadMarkets);
+    byId("buyForm").addEventListener("submit", addPosition);
+    byId("closeDialogButton").addEventListener("click", closeBuyDialog);
+    byId("cancelDialogButton").addEventListener("click", closeBuyDialog);
+    byId("clearHistoryButton").addEventListener("click", clearHistory);
+    byId("buyDialog").addEventListener("cancel", (event) => {
+        event.preventDefault();
+        closeBuyDialog();
+    });
+
+    updateClock();
+    window.setInterval(updateClock, 1_000);
+    renderPortfolio();
+    renderHistory();
+    loadMarkets();
+    window.setInterval(loadMarkets, REFRESH_INTERVAL);
 });
